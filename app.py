@@ -11,25 +11,17 @@ For the FastAPI-wrapped variant with CORS and extra metadata routes,
 see asgi_app.py instead.
 """
 
-from starlette.responses import JSONResponse
+from health import register_health_routes
 from mcp_server_main import create_app
+from runtime_state import RuntimeTrackingMiddleware
 
 mcp = create_app()
-
-
-@mcp.custom_route("/health", methods=["GET"])
-async def health_check(request):
-    """Health check endpoint for monitoring services (Fly.io, Render, etc.)."""
-    return JSONResponse({
-        "status": "healthy",
-        "service": "Yargı MCP Server",
-        "version": "0.2.1",
-    })
-
+mcp.add_middleware(RuntimeTrackingMiddleware())
+register_health_routes(mcp)
 
 # Create ASGI app directly from FastMCP server
 app = mcp.http_app()
 
 # Endpoints:
 # - /mcp/   - MCP server (Streamable HTTP transport, default FastMCP path)
-# - /health - Health check for monitoring
+# - /health - Any failed server or upstream dependency check returns 503

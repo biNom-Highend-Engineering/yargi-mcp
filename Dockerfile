@@ -18,6 +18,8 @@ COPY README.md ./
 COPY app.py ./
 COPY asgi_app.py ./
 COPY mcp_server_main.py ./
+COPY health.py ./
+COPY runtime_state.py ./
 
 # Copy MCP modules and shared packages
 COPY anayasa_mcp_module ./anayasa_mcp_module
