@@ -64,6 +64,11 @@ def is_openrouter_available() -> bool:
     return bool(os.getenv("OPENROUTER_API_KEY"))
 
 
+def is_orcarouter_available() -> bool:
+    """Check if OrcaRouter API key is available."""
+    return bool(os.getenv("ORCAROUTER_API_KEY"))
+
+
 def is_local_embedding_configured() -> bool:
     """Check if the user opted into a local embedding endpoint."""
     return os.getenv("EMBEDDING_PROVIDER", "").strip().lower() == "local"
@@ -71,7 +76,11 @@ def is_local_embedding_configured() -> bool:
 
 def is_semantic_search_available() -> bool:
     """Returns True if any embedding provider is configured."""
-    return is_local_embedding_configured() or is_openrouter_available()
+    return (
+        is_local_embedding_configured()
+        or is_openrouter_available()
+        or is_orcarouter_available()
+    )
 
 
 def _coerce_dimension(value, env_name: str, default: int) -> int:
@@ -261,6 +270,59 @@ class OpenRouterEmbedder(_BaseOpenAICompatibleEmbedder):
         )
 
 
+class OrcaRouterEmbedder(_BaseOpenAICompatibleEmbedder):
+    """
+    Embedder using OrcaRouter's OpenAI-compatible embedding API.
+
+    OrcaRouter is a production AI gateway that proxies 200+ models on a single
+    OpenAI-compatible endpoint. The model and dimension are configurable so
+    users can pick any embedding model the gateway routes. Configuration
+    precedence: explicit constructor args > environment variables > defaults.
+
+    Environment variables:
+        ORCAROUTER_API_KEY (required): OrcaRouter credential (sk-orca-...)
+        ORCAROUTER_EMBEDDING_MODEL (optional): override the embedding model id
+        ORCAROUTER_EMBEDDING_DIMENSION (optional): override the vector size
+
+    Defaults: ``google/gemini-embedding-001`` at 3072 dimensions (multilingual,
+    matches the OpenRouter default — good for Turkish legal text).
+    """
+
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        dimension: Optional[int] = None,
+        prompt_style: Optional[str] = None,
+    ):
+        api_key = os.getenv("ORCAROUTER_API_KEY")
+        if not api_key:
+            raise ValueError("ORCAROUTER_API_KEY environment variable is not set")
+
+        try:
+            from openai import OpenAI
+        except ImportError:
+            raise ImportError("openai package is required. Install with: pip install openai")
+
+        self.client = OpenAI(
+            base_url="https://api.orcarouter.ai/v1",
+            api_key=api_key,
+        )
+        self.model = model or os.getenv("ORCAROUTER_EMBEDDING_MODEL") or DEFAULT_MODEL
+        self.dimension = _coerce_dimension(
+            dimension if dimension is not None else os.getenv("ORCAROUTER_EMBEDDING_DIMENSION"),
+            "ORCAROUTER_EMBEDDING_DIMENSION",
+            DEFAULT_DIMENSION,
+        )
+        # Same gemini-style default as the OpenRouter embedder — matches the
+        # multilingual google/gemini-embedding-001 default model.
+        self.prompt_style = _resolve_prompt_style(prompt_style, "gemini")
+
+        logger.info(
+            f"OrcaRouter Embedder initialized with model: {self.model} "
+            f"(dimension={self.dimension}, prompt_style={self.prompt_style})"
+        )
+
+
 class LocalEmbedder(_BaseOpenAICompatibleEmbedder):
     """
     Embedder for a local OpenAI-compatible embedding server — Ollama,
@@ -332,17 +394,22 @@ def get_embedder():
     Factory that picks the embedder based on EMBEDDING_PROVIDER.
 
     - ``EMBEDDING_PROVIDER=local`` -> ``LocalEmbedder``
+    - ``ORCAROUTER_API_KEY`` set -> ``OrcaRouterEmbedder``
     - otherwise -> ``OpenRouterEmbedder`` (requires OPENROUTER_API_KEY)
 
     Raises:
-        ValueError: If no provider is configured (neither local nor OpenRouter).
+        ValueError: If no provider is configured (neither local, OpenRouter,
+            nor OrcaRouter).
     """
     if is_local_embedding_configured():
         return LocalEmbedder()
+    if is_orcarouter_available():
+        return OrcaRouterEmbedder()
     if is_openrouter_available():
         return OpenRouterEmbedder()
     raise ValueError(
-        "No embedding provider configured. Set OPENROUTER_API_KEY for hosted "
-        "embeddings, or EMBEDDING_PROVIDER=local (with LOCAL_EMBEDDING_* "
-        "env vars) for a local OpenAI-compatible server like Ollama."
+        "No embedding provider configured. Set OPENROUTER_API_KEY or "
+        "ORCAROUTER_API_KEY for hosted embeddings, or EMBEDDING_PROVIDER=local "
+        "(with LOCAL_EMBEDDING_* env vars) for a local OpenAI-compatible "
+        "server like Ollama."
     )

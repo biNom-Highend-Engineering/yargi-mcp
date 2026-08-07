@@ -2,9 +2,11 @@
 
 from .embedder import (
     OpenRouterEmbedder,
+    OrcaRouterEmbedder,
     LocalEmbedder,
     get_embedder,
     is_openrouter_available,
+    is_orcarouter_available,
     is_local_embedding_configured,
     is_semantic_search_available,
 )
@@ -13,9 +15,11 @@ from .processor import DocumentProcessor
 
 __all__ = [
     'OpenRouterEmbedder',
+    'OrcaRouterEmbedder',
     'LocalEmbedder',
     'get_embedder',
     'is_openrouter_available',
+    'is_orcarouter_available',
     'is_local_embedding_configured',
     'is_semantic_search_available',
     'VectorStore',

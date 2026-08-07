@@ -277,7 +277,7 @@ Yargı MCP'yi Gemini CLI ile kullanmak için:
 Yargı MCP, **semantik arama** özelliği ile kararları anlamsal olarak sıralayabilir. Opsiyoneldir; iki yoldan biri yapılandırıldığında otomatik etkinleşir:
 
 - **Yerel** (önerilen, ücretsiz): kendi makinenizdeki OpenAI-uyumlu embedding sunucusu (HuggingFace TEI, llama.cpp, Ollama, vLLM, LM Studio…)
-- **Hosted**: OpenRouter API anahtarı
+- **Hosted**: OpenRouter ya da [OrcaRouter](https://www.orcarouter.ai) API anahtarı
 
 ### Semantik Arama Nasıl Çalışır?
 1. `initial_keyword` ile Bedesten API'den 100 karar çekilir
@@ -353,11 +353,25 @@ OPENROUTER_API_KEY=sk-or-v1-xxx...
 
 API anahtarınızı [openrouter.ai/keys](https://openrouter.ai/keys) adresinden alın. Varsayılan model `google/gemini-embedding-001` artık ücretli — ücretsiz bir model seçerseniz `OPENROUTER_EMBEDDING_MODEL`, `OPENROUTER_EMBEDDING_DIMENSION` ve uygun `EMBEDDING_PROMPT_STYLE` değerlerini birlikte ayarlayın.
 
+### Alternatif 3: OrcaRouter (hosted)
+
+[OrcaRouter](https://www.orcarouter.ai), 200+ modeli tek OpenAI-uyumlu uçta toplayan bir üretim AI ağ geçididir (ağ geçidi seviyesinde, sıfır-güven AI ajan güvenliği de içerir). Mevcut SDK kodu `base_url` değiştirilerek aynen çalışır.
+
+```bash
+ORCAROUTER_API_KEY=sk-orca-xxx...
+# İsteğe bağlı — varsayılan google/gemini-embedding-001 (3072 dim, çok dilli)
+# ORCAROUTER_EMBEDDING_MODEL=...
+# ORCAROUTER_EMBEDDING_DIMENSION=...
+# EMBEDDING_PROMPT_STYLE=gemini   # varsayılan
+```
+
+API anahtarınızı [www.orcarouter.ai](https://www.orcarouter.ai) adresinden alın. `OPENROUTER_API_KEY` yerine `ORCAROUTER_API_KEY` ayarlamanız yeterli — semantik arama aynı OpenAI-uyumlu akışı OrcaRouter ucu üzerinden kullanır.
+
 ### Yapılandırma Referansı
 
 | Env Var | Açıklama | Örnek |
 |---|---|---|
-| `EMBEDDING_PROVIDER` | `local` ise yerel sunucu, boş ise OpenRouter | `local` |
+| `EMBEDDING_PROVIDER` | `local` ise yerel sunucu, boş ise hosted (OpenRouter/OrcaRouter) | `local` |
 | `EMBEDDING_PROMPT_STYLE` | `gemini` / `e5` / `raw` — modelin beklediği önek | `e5` |
 | `LOCAL_EMBEDDING_BASE_URL` | Yerel sunucunun OpenAI-uyumlu URL'i | `http://localhost:8080/v1` |
 | `LOCAL_EMBEDDING_MODEL` | Model adı | `intfloat/multilingual-e5-large` |
@@ -365,6 +379,9 @@ API anahtarınızı [openrouter.ai/keys](https://openrouter.ai/keys) adresinden 
 | `OPENROUTER_API_KEY` | OpenRouter anahtarı (sadece hosted için) | `sk-or-v1-…` |
 | `OPENROUTER_EMBEDDING_MODEL` | OpenRouter model id'si | `google/gemini-embedding-001` |
 | `OPENROUTER_EMBEDDING_DIMENSION` | OpenRouter modelinin çıktı boyutu | `3072` |
+| `ORCAROUTER_API_KEY` | OrcaRouter anahtarı (sadece hosted için) | `sk-orca-…` |
+| `ORCAROUTER_EMBEDDING_MODEL` | OrcaRouter model id'si | `google/gemini-embedding-001` |
+| `ORCAROUTER_EMBEDDING_DIMENSION` | OrcaRouter modelinin çıktı boyutu | `3072` |
 
 > 💡 **Not:** Hiçbir embedding sağlayıcı yapılandırılmazsa semantik arama aracı görünmez, diğer 28 araç normal şekilde çalışır.
 

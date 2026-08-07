@@ -266,14 +266,24 @@ from bedesten_mcp_module.models import (
 from bedesten_mcp_module.enums import BirimAdiEnum
 
 # Semantic Search Module Imports (enabled if any embedding provider is configured)
-from semantic_search.embedder import is_semantic_search_available, is_local_embedding_configured
+from semantic_search.embedder import (
+    is_semantic_search_available,
+    is_local_embedding_configured,
+    is_openrouter_available,
+    is_orcarouter_available,
+)
 SEMANTIC_SEARCH_AVAILABLE = is_semantic_search_available()
 
 if SEMANTIC_SEARCH_AVAILABLE:
     from semantic_search.embedder import get_embedder
     from semantic_search.vector_store import VectorStore
     from semantic_search.processor import DocumentProcessor
-    provider = "local" if is_local_embedding_configured() else "openrouter"
+    if is_local_embedding_configured():
+        provider = "local"
+    elif is_orcarouter_available():
+        provider = "orcarouter"
+    elif is_openrouter_available():
+        provider = "openrouter"
     logger.info(f"Semantic search enabled (provider={provider})")
 else:
     logger.info("Semantic search disabled (no embedding provider configured)")
